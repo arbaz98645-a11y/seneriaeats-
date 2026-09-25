@@ -11,32 +11,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Find project
-        run: |
-          echo "Files in repository:"
-          find . -maxdepth 3 -type f | sort | head -200
-
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Find Gradle wrapper
-        id: gradle
+      - name: Extract ZIP
         run: |
-          GRADLEW=$(find . -name gradlew -type f | head -n 1)
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew was not found."
-            exit 1
-          fi
-          chmod +x "$GRADLEW"
-          echo "gradlew=$GRADLEW" >> "$GITHUB_OUTPUT"
+          ZIP=$(find . -maxdepth 2 -type f -iname 'SeneritaEats*.zip' | head -n 1)
+          echo "Using ZIP: $ZIP"
+          unzip -q "$ZIP" -d extracted
 
-      - name: Build Debug APK
+      - name: Find Gradle project
         run: |
-          GRADLEW="${{ steps.gradle.outputs.gradlew }}"
-          cd "$(dirname "$GRADLEW")"
+          find extracted -name settings.gradle -o -name settings.gradle.kts
+
+      - name: Build APK
+        run: |
+          PROJECT=$(find extracted -name settings.gradle.kts -o -name settings.gradle | head -n 1)
+          DIR=$(dirname "$PROJECT")
+          cd "$DIR"
+
+          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
