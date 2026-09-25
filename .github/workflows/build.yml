@@ -12,28 +12,32 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract ZIP
+      - name: Show repository files
         run: |
-          ZIP=$(find . -maxdepth 2 -type f -iname 'SeneritaEats*.zip' | head -n 1)
-          echo "Using ZIP: $ZIP"
-          unzip -q "$ZIP" -d extracted
+          echo "Repository contents:"
+          find . -maxdepth 4 -type f | sort
 
-      - name: Find Gradle project
+      - name: Find Gradle wrapper
         run: |
-          find extracted -name settings.gradle -o -name settings.gradle.kts
+          GRADLEW=$(find . -name gradlew -type f | head -n 1)
 
-      - name: Build APK
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew is missing from the repository."
+            echo "The Android project files must be uploaded to GitHub."
+            exit 1
+          fi
+
+          chmod +x "$GRADLEW"
+
+      - name: Build Debug APK
         run: |
-          PROJECT=$(find extracted -name settings.gradle.kts -o -name settings.gradle | head -n 1)
-          DIR=$(dirname "$PROJECT")
-          cd "$DIR"
-
-          chmod +x gradlew
+          GRADLEW=$(find . -name gradlew -type f | head -n 1)
+          cd "$(dirname "$GRADLEW")"
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
